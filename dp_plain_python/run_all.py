@@ -1,9 +1,7 @@
 import logging
 
-from dp_plain_python.extract.run_extract import (
-    extract_resale_flat_prices,
-    extract_mrt_stations,
-)
+from dp_plain_python.extract.run_extract import extract_into_staging
+from dp_plain_python.load.run_load import load_into_storage
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -12,14 +10,11 @@ log = logging.getLogger(__name__)
 def main():
     log.info(f"Data Pipeline started.")
 
-    # Extract
-    df = extract_resale_flat_prices()
-    df2 = extract_mrt_stations()
-
-    print(df.head())
-    print(df2.head())
-
-    # Load
-
+    extract_into_staging()
+    load_into_storage()
     # Transform
     # Analytics
+
+
+if __name__ == "__main__":
+    main()

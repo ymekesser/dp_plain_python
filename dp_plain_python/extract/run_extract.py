@@ -1,33 +1,76 @@
 import logging
+from typing import Any
 import pandas as pd
+from os import makedirs
+import shutil
+from pathlib import Path
+import json
+
+from dp_plain_python.extract.geolocation import (
+    get_shopping_malls_geodata,
+    get_mrt_stations_geodata,
+)
 
 log = logging.getLogger(__name__)
 
+# todo: Make configurable
 resale_flat_prices_path = (
     "..\\data\\resale-flat-prices-based-on-registration-date-from-jan-2017-onwards.csv"
 )
 mrt_stations_path = "..\\data\\mrt_stations.xlsx"
 
-
-def extract_resale_flat_prices() -> pd.DataFrame:
-    log.info(f"Loading Resale Flat prices from CSV  file: {mrt_stations_path}")
-
-    df = pd.read_csv(resale_flat_prices_path)
-
-    log.info(
-        f"Resale Flat prices  data successfully loaded. Rows: {df.shape[0]} Columns: {df.shape[1]}"
-    )
-
-    return df
+staging_path = "local_data\\staging"
 
 
-def extract_mrt_stations() -> pd.DataFrame:
-    log.info(f"Loading MRT station data from Excel file: {mrt_stations_path}")
+def extract_into_staging() -> None:
+    log.info(f"Starting Extraction Step.")
 
-    df = pd.read_excel(mrt_stations_path, sheet_name="Sheet1")
+    makedirs(staging_path, exist_ok=True)
 
-    log.info(
-        f"MRT station data successfully loaded. Rows: {df.shape[0]} Columns: {df.shape[1]}"
-    )
+    _extract_resale_flat_prices()
+    _extract_mrt_stations()
+    _extract_mrt_geodata()
+    _extract_mall_geodata()
 
-    return df
+
+def _extract_resale_flat_prices() -> None:
+    log.info("Extracting hdb resale flat prices data")
+    _extract_file(resale_flat_prices_path)
+
+
+def _extract_mrt_stations() -> None:
+    log.info("Extracting MRT station data")
+    _extract_file(mrt_stations_path)
+
+
+def _extract_mrt_geodata() -> None:
+    log.info("Extracting MRT geodata")
+    data = get_mrt_stations_geodata()
+
+    _save_as_json(data, "mrt_geodata.json")
+
+
+def _extract_mall_geodata() -> None:
+    log.info("Extracting Shopping Mall geodata")
+    data = get_shopping_malls_geodata()
+
+    _save_as_json(data, "mall_geodata.json")
+
+
+def _save_as_json(data: Any, filename: str) -> None:
+    dst = Path(staging_path) / filename
+
+    log.info(f"Saving JSON data to to {dst}")
+
+    with open(dst, "w") as f:
+        json.dump(data, f)
+
+
+def _extract_file(path: str) -> None:
+    src = Path(path)
+    file_name = src.name
+    dst = Path(staging_path) / file_name
+
+    log.info(f"Copying file {src} to {dst}")
+
+    shutil.copy(src, dst)
