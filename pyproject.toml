@@ -9,6 +9,8 @@ packages = [{include = "dp_plain_python"}]
 [tool.poetry.dependencies]
 python = "^3.11"
 pandas = "^2.0.1"
+pytest = "^7.3.1"
+openpyxl = "^3.1.2"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -17,3 +19,6 @@ black = "^23.3.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+run-all = "dp_plain_python.run_all:main"
