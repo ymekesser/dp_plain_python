@@ -62,8 +62,8 @@ def _save_as_json(data: Any, filename: str) -> None:
 
     log.info(f"Saving JSON data to to {dst}")
 
-    with open(dst, "w") as f:
-        json.dump(data, f)
+    with open(dst, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
 
 
 def _extract_file(path: str) -> None:
