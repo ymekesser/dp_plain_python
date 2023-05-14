@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "dp-plain-python"
+version = "0.1.0"
+description = ""
+authors = ["Yacine Mekesser"]
+readme = "README.md"
+packages = [{include = "dp_plain_python"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pandas = "^2.0.1"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
