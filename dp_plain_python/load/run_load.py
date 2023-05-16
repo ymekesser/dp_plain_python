@@ -35,7 +35,7 @@ def _load_resale_flat_prices():
 
     df = pd.read_csv(source)
 
-    _store_as_parquet(df, "resale_flat_prices")
+    _store_as_csv(df, "resale_flat_prices")
 
 
 def _load_mrt_stations():
@@ -44,7 +44,7 @@ def _load_mrt_stations():
     source = Path(staging_path) / mrt_stations_filename
     df = pd.read_excel(source, sheet_name="Sheet1")
 
-    _store_as_parquet(df, "mrt_stations")
+    _store_as_csv(df, "mrt_stations")
 
 
 def _load_mrt_geodata():
@@ -53,7 +53,7 @@ def _load_mrt_geodata():
     source = Path(staging_path) / mrt_geodata_filename
     df = _load_json_dataframe(source)
 
-    _store_as_parquet(df, "mrt_geodata")
+    _store_as_csv(df, "mrt_geodata")
 
 
 def _load_mall_geodata():
@@ -62,17 +62,22 @@ def _load_mall_geodata():
     source = Path(staging_path) / mall_geodata_filename
     df = _load_json_dataframe(source)
 
-    _store_as_parquet(df, "mall_geodata")
+    _store_as_csv(df, "mall_geodata")
 
 
 def _load_json_dataframe(source: Path):
     with source.open(encoding="utf-8") as f:
         data = json.load(f)
 
-    data_dict = pd.json_normalize(data)
+    data_dict = pd.json_normalize(data, record_path=["elements"])
     return pd.DataFrame.from_dict(data_dict, orient="columns")  # type: ignore
 
 
 def _store_as_parquet(df: pd.DataFrame, filename: str) -> None:
     destination = Path(storage_path) / (filename + ".parquet")
+    df.to_parquet(destination)
+
+
+def _store_as_csv(df: pd.DataFrame, filename: str) -> None:
+    destination = Path(storage_path) / (filename + ".csv")
     df.to_csv(destination)
