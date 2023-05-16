@@ -20,7 +20,7 @@ out center;
 mrt_query = """
 [out:json];
 area["ISO3166-1"="SG"][admin_level=2];
-node(area)["station"="subway"];
+node(area)["subway"="yes"];
 out;
 """
 
@@ -32,7 +32,7 @@ def get_shopping_malls_geodata():
 
 
 def get_mrt_stations_geodata():
-    response = _get(shopping_mall_query)
+    response = _get(mrt_query)
 
     return response
 
