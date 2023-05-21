@@ -15,6 +15,7 @@ resale_flat_prices_filename = (
 mrt_stations_filename = "mrt_stations.xlsx"
 mrt_geodata_filename = "mrt_geodata.json"
 mall_geodata_filename = "mall_geodata.json"
+address_geodata_filename = "address_geolocations.csv"
 
 
 def load_into_storage():
@@ -26,6 +27,7 @@ def load_into_storage():
     _load_mrt_stations()
     _load_mrt_geodata()
     _load_mall_geodata()
+    _load_address_geodata()
 
 
 def _load_resale_flat_prices():
@@ -63,6 +65,16 @@ def _load_mall_geodata():
     df = _load_json_dataframe(source)
 
     _store_as_csv(df, "mall_geodata")
+
+
+def _load_address_geodata():
+    log.info(f"Loading {address_geodata_filename} from staging into storage")
+
+    source = Path(staging_path) / address_geodata_filename
+
+    df = pd.read_csv(source)
+
+    _store_as_csv(df, "address_geodata")
 
 
 def _load_json_dataframe(source: Path):

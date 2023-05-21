@@ -18,6 +18,7 @@ resale_flat_prices_path = (
     "..\\data\\resale-flat-prices-based-on-registration-date-from-jan-2017-onwards.csv"
 )
 mrt_stations_path = "..\\data\\mrt_stations.xlsx"
+address_geodata_path = "..\\data\\address_geolocations.csv"
 
 staging_path = "local_data\\staging"
 
@@ -31,6 +32,7 @@ def extract_into_staging() -> None:
     _extract_mrt_stations()
     _extract_mrt_geodata()
     _extract_mall_geodata()
+    _extract_address_geodata()
 
 
 def _extract_resale_flat_prices() -> None:
@@ -55,6 +57,11 @@ def _extract_mall_geodata() -> None:
     data = get_shopping_malls_geodata()
 
     _save_as_json(data, "mall_geodata.json")
+
+
+def _extract_address_geodata() -> None:
+    log.info("Extracting address geolocation data")
+    _extract_file(address_geodata_path)
 
 
 def _save_as_json(data: Any, filename: str) -> None:
