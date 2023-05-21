@@ -36,6 +36,6 @@ def _remove_nameless_malls(df_mall_geodata: pd.DataFrame) -> pd.DataFrame:
 def _remove_duplicate_malls(df_mall_geodata: pd.DataFrame) -> pd.DataFrame:
     # Some malls, e.g. Mustafa Centre, appear multiple times.
     # The locations are clustered together, so we take the mean of lat/long
-    df_mall_geodata = df_mall_geodata.groupby("name").mean()
+    df_mall_geodata = df_mall_geodata.groupby("name", as_index=False).mean()
 
     return df_mall_geodata
