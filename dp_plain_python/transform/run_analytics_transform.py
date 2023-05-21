@@ -11,6 +11,12 @@ from dp_plain_python.transform.clean_mrt_stations import (
 )
 from dp_plain_python.transform.clean_resale_prices import get_cleaned_resale_prices
 
+from scipy.spatial import cKDTree
+from math import radians
+
+from dp_plain_python.utils.select_columns import select_columns
+
+
 log = logging.getLogger(__name__)
 
 # todo make configurable
@@ -39,13 +45,53 @@ def transform_for_analytics() -> None:
     df_mall_geodata = get_cleaned_malls_with_geolocation(df_mall_geodata)
     df_address_geodata = get_cleaned_addresses_with_geolocation(df_address_geodata)
 
-    # Todo: Calculate closest mrts/malls per entry in df_resale_flat_prices
+    df_feature_set = pd.merge(
+        df_resale_flat_prices,
+        df_address_geodata,
+        how="left",
+        on=["block", "street_name"],
+    )
 
-    df_feature_set = df_resale_flat_prices
+    missing_latitude_count = df_feature_set["latitude"].isnull().sum()
+    log.info(
+        f"Number of rows with missing latitude: {missing_latitude_count} out of {df_feature_set.shape[0]}"
+    )
+    df_feature_set = df_feature_set.dropna(subset=["latitude"])
+
+    df_feature_set = _find_closest_location(df_feature_set, df_mrt_stations, "mrt")
+    df_feature_set = _find_closest_location(df_feature_set, df_mall_geodata, "mall")
 
     _store_transformed_output(df_feature_set, "feature_set.csv")
-    _store_transformed_output(df_mrt_stations, "mrt_temp.csv")
-    _store_transformed_output(df_mall_geodata, "mall_temp.csv")
+
+
+def _find_closest_location(
+    df_feature_set: pd.DataFrame, df_locations: pd.DataFrame, location_type: str
+) -> pd.DataFrame:
+    EARTH_RADIUS = 6371
+    # Convert latitude and longitude to radians
+    df_feature_set["latitude_rad"] = df_feature_set["latitude"].apply(radians)
+    df_feature_set["longitude_rad"] = df_feature_set["longitude"].apply(radians)
+    df_locations["latitude_rad"] = df_locations["latitude"].apply(radians)
+    df_locations["longitude_rad"] = df_locations["longitude"].apply(radians)
+
+    # Create a KDTree for the location dataframe
+    location_tree = cKDTree(df_locations[["latitude_rad", "longitude_rad"]])
+
+    # Query the KDTree for each point in the points dataframe
+    distances, indices = location_tree.query(
+        df_feature_set[["latitude_rad", "longitude_rad"]], k=1
+    )
+
+    # Get the closest entry from the location dataframe
+    df_feature_set[f"closest_{location_type}"] = df_locations.loc[indices, "name"].values  # type: ignore
+    df_feature_set[f"distance_to_closest_{location_type}"] = (
+        distances * EARTH_RADIUS * 1000
+    )
+
+    # Drop the intermediate columns
+    df_feature_set.drop(["latitude_rad", "longitude_rad"], axis=1, inplace=True)
+
+    return df_feature_set
 
 
 def _read_from_storage(filename: str) -> pd.DataFrame:
@@ -56,6 +102,7 @@ def _read_from_storage(filename: str) -> pd.DataFrame:
 
 
 def _store_transformed_output(df: pd.DataFrame, filename: str) -> None:
+    log.info(f"Storing {filename} to transformed (analytics)")
     dst = Path(transformed_analytics_path)
     makedirs(dst, exist_ok=True)
 
