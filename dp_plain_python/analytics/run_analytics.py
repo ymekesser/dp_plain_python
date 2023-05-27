@@ -7,15 +7,20 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 import sklearn.metrics as metrics
+from dp_plain_python.environment import config, file_storage
 
 log = logging.getLogger(__name__)
 
-transformed_analytics_path = "local_data\\transformed_analytics"
+transformed_analytics_path = config.get_location("TransformedAnalytics")
 feature_set_filename = "feature_set.csv"
 analytics_path = "local_data\\analytics"
 
+storage = file_storage.LocalFileStorage()
+
 
 def run_analytics() -> None:
+    log.info("Starting Analytics Step")
+
     df_features = _read_feature_set()
 
     X = df_features[
@@ -69,4 +74,4 @@ def _read_feature_set() -> pd.DataFrame:
     log.info(f"Loading {feature_set_filename} from transformed_analytics for analytics")
     path = Path(transformed_analytics_path) / feature_set_filename
 
-    return pd.read_csv(path)
+    return storage.read_dataframe(path)

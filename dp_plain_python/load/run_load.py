@@ -37,7 +37,9 @@ def _load_resale_flat_prices():
 
     df = storage.read_dataframe(source)
 
-    _store_as_csv(df, "resale_flat_prices")
+    storage.write_dataframe(
+        df, storage_path / config.get_storage_filename("ResaleFlatPrices")
+    )
 
 
 def _load_mrt_stations():
@@ -46,7 +48,9 @@ def _load_mrt_stations():
     source = staging_path / mrt_stations_filename
     df = pd.read_excel(source, sheet_name="Sheet1")
 
-    _store_as_csv(df, "mrt_stations")
+    storage.write_dataframe(
+        df, storage_path / config.get_storage_filename("MrtStations")
+    )
 
 
 def _load_mrt_geodata():
@@ -55,7 +59,9 @@ def _load_mrt_geodata():
     source = staging_path / mrt_geodata_filename
     df = _load_overpass_json_dataframe(source)
 
-    _store_as_csv(df, "mrt_geodata")
+    storage.write_dataframe(
+        df, storage_path / config.get_storage_filename("MrtGeodata")
+    )
 
 
 def _load_mall_geodata():
@@ -64,7 +70,9 @@ def _load_mall_geodata():
     source = staging_path / mall_geodata_filename
     df = _load_overpass_json_dataframe(source)
 
-    _store_as_csv(df, "mall_geodata")
+    storage.write_dataframe(
+        df, storage_path / config.get_storage_filename("MallGeodata")
+    )
 
 
 def _load_address_geodata():
@@ -74,7 +82,9 @@ def _load_address_geodata():
 
     df = pd.read_csv(source)
 
-    _store_as_csv(df, "address_geodata")
+    storage.write_dataframe(
+        df, storage_path / config.get_storage_filename("HdbAddressGeodata")
+    )
 
 
 def _load_overpass_json_dataframe(source: Path):
@@ -83,8 +93,3 @@ def _load_overpass_json_dataframe(source: Path):
 
     data_dict = pd.json_normalize(data, record_path=["elements"])
     return pd.DataFrame.from_dict(data_dict, orient="columns")  # type: ignore
-
-
-def _store_as_csv(df: pd.DataFrame, filename: str) -> None:
-    destination = storage_path / (filename + ".csv")
-    storage.write_dataframe(df, destination)

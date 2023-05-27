@@ -1,6 +1,4 @@
 import logging
-from os import makedirs
-from pathlib import Path
 import pandas as pd
 from dp_plain_python.transform.clean_address import (
     get_cleaned_addresses_with_geolocation,
@@ -14,29 +12,35 @@ from dp_plain_python.transform.clean_resale_prices import get_cleaned_resale_pri
 from scipy.spatial import cKDTree
 from math import radians
 
-from dp_plain_python.utils.select_columns import select_columns
+from dp_plain_python.environment import config, file_storage
 
 
 log = logging.getLogger(__name__)
 
-# todo make configurable
-storage_path = "local_data\\storage"
-resale_flat_prices_filename = "resale_flat_prices.csv"
-mrt_stations_filename = "mrt_stations.csv"
-mrt_geodata_filename = "mrt_geodata.csv"
-mall_geodata_filename = "mall_geodata.csv"
-address_geodata_filename = "address_geodata.csv"
-transformed_analytics_path = "local_data\\transformed_analytics"
+storage_path = config.get_location("Storage")
+transformed_analytics_path = config.get_location("TransformedAnalytics")
+
+resale_flat_prices_filename = config.get_storage_filename("ResaleFlatPrices")
+mrt_stations_filename = config.get_storage_filename("MrtStations")
+mrt_geodata_filename = config.get_storage_filename("MrtGeodata")
+mall_geodata_filename = config.get_storage_filename("MallGeodata")
+address_geodata_filename = config.get_storage_filename("HdbAddressGeodata")
+
+storage = file_storage.LocalFileStorage()
 
 
 def transform_for_analytics() -> None:
     log.info("Starting Transformation Step for analytics")
 
-    df_resale_flat_prices = _read_from_storage(resale_flat_prices_filename)
-    df_mrt_stations = _read_from_storage(mrt_stations_filename)
-    df_mrt_geodata = _read_from_storage(mrt_geodata_filename)
-    df_mall_geodata = _read_from_storage(mall_geodata_filename)
-    df_address_geodata = _read_from_storage(address_geodata_filename)
+    storage.ensure_directory(transformed_analytics_path)
+
+    df_resale_flat_prices = storage.read_dataframe(
+        storage_path / resale_flat_prices_filename
+    )
+    df_mrt_stations = storage.read_dataframe(storage_path / mrt_stations_filename)
+    df_mrt_geodata = storage.read_dataframe(storage_path / mrt_geodata_filename)
+    df_mall_geodata = storage.read_dataframe(storage_path / mall_geodata_filename)
+    df_address_geodata = storage.read_dataframe(storage_path / address_geodata_filename)
 
     df_resale_flat_prices = get_cleaned_resale_prices(df_resale_flat_prices)
     df_mrt_stations = get_cleaned_mrt_stations_with_geolocation(
@@ -54,17 +58,33 @@ def transform_for_analytics() -> None:
 
     missing_latitude_count = df_feature_set["latitude"].isnull().sum()
     log.info(
-        f"Number of rows with missing latitude: {missing_latitude_count} out of {df_feature_set.shape[0]}"
+        f"Number of rows with missing address location: {missing_latitude_count} out of {df_feature_set.shape[0]}"
     )
     df_feature_set = df_feature_set.dropna(subset=["latitude"])
 
+    df_feature_set = _add_closest_mrt(df_feature_set, df_mrt_stations)
+    df_feature_set = _add_closest_mall(df_feature_set, df_mall_geodata)
+    df_feature_set = _add_distance_to_cbd(df_feature_set)
+
+    _store_transformed_output(df_feature_set, "feature_set.csv")
+
+
+def _add_closest_mrt(df_feature_set, df_mrt_stations):
     df_feature_set = _find_closest_location(
         df_feature_set, df_mrt_stations, "closest_mrt"
     )
+    return df_feature_set
+
+
+def _add_closest_mall(df_feature_set, df_mall_geodata):
     df_feature_set = _find_closest_location(
         df_feature_set, df_mall_geodata, "closest_mall"
     )
 
+    return df_feature_set
+
+
+def _add_distance_to_cbd(df_feature_set):
     cbd_location = pd.DataFrame.from_dict(
         {
             "latitude": [1.280602347559877],
@@ -72,10 +92,10 @@ def transform_for_analytics() -> None:
             "name": "CBD",
         }
     )
-    print(cbd_location)
+
     df_feature_set = _find_closest_location(df_feature_set, cbd_location, "cbd")
 
-    _store_transformed_output(df_feature_set, "feature_set.csv")
+    return df_feature_set
 
 
 def _find_closest_location(
@@ -107,16 +127,7 @@ def _find_closest_location(
     return df_feature_set
 
 
-def _read_from_storage(filename: str) -> pd.DataFrame:
-    log.info(f"Loading {filename} from storage for transformation")
-    path = Path(storage_path) / filename
-
-    return pd.read_csv(path)
-
-
 def _store_transformed_output(df: pd.DataFrame, filename: str) -> None:
     log.info(f"Storing {filename} to transformed (analytics)")
-    dst = Path(transformed_analytics_path)
-    makedirs(dst, exist_ok=True)
 
-    df.to_csv(dst / filename)
+    storage.write_dataframe(df, transformed_analytics_path / filename)
