@@ -58,8 +58,22 @@ def transform_for_analytics() -> None:
     )
     df_feature_set = df_feature_set.dropna(subset=["latitude"])
 
-    df_feature_set = _find_closest_location(df_feature_set, df_mrt_stations, "mrt")
-    df_feature_set = _find_closest_location(df_feature_set, df_mall_geodata, "mall")
+    df_feature_set = _find_closest_location(
+        df_feature_set, df_mrt_stations, "closest_mrt"
+    )
+    df_feature_set = _find_closest_location(
+        df_feature_set, df_mall_geodata, "closest_mall"
+    )
+
+    cbd_location = pd.DataFrame.from_dict(
+        {
+            "latitude": [1.280602347559877],
+            "longitude": [103.85040609311484],
+            "name": "CBD",
+        }
+    )
+    print(cbd_location)
+    df_feature_set = _find_closest_location(df_feature_set, cbd_location, "cbd")
 
     _store_transformed_output(df_feature_set, "feature_set.csv")
 
@@ -68,6 +82,7 @@ def _find_closest_location(
     df_feature_set: pd.DataFrame, df_locations: pd.DataFrame, location_type: str
 ) -> pd.DataFrame:
     EARTH_RADIUS = 6371
+
     # Convert latitude and longitude to radians
     df_feature_set["latitude_rad"] = df_feature_set["latitude"].apply(radians)
     df_feature_set["longitude_rad"] = df_feature_set["longitude"].apply(radians)
@@ -83,10 +98,8 @@ def _find_closest_location(
     )
 
     # Get the closest entry from the location dataframe
-    df_feature_set[f"closest_{location_type}"] = df_locations.loc[indices, "name"].values  # type: ignore
-    df_feature_set[f"distance_to_closest_{location_type}"] = (
-        distances * EARTH_RADIUS * 1000
-    )
+    df_feature_set[f"{location_type}"] = df_locations.loc[indices, "name"].values  # type: ignore
+    df_feature_set[f"distance_to_{location_type}"] = distances * EARTH_RADIUS * 1000
 
     # Drop the intermediate columns
     df_feature_set.drop(["latitude_rad", "longitude_rad"], axis=1, inplace=True)
