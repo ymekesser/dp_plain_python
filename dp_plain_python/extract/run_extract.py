@@ -1,10 +1,5 @@
 import logging
-from typing import Any
-import pandas as pd
-from os import makedirs
-import shutil
-from pathlib import Path
-import json
+from dp_plain_python.environment import config, file_storage
 
 from dp_plain_python.extract.geolocation import (
     get_shopping_malls_geodata,
@@ -13,20 +8,19 @@ from dp_plain_python.extract.geolocation import (
 
 log = logging.getLogger(__name__)
 
-# todo: Make configurable
-resale_flat_prices_path = (
-    "..\\data\\resale-flat-prices-based-on-registration-date-from-jan-2017-onwards.csv"
-)
-mrt_stations_path = "..\\data\\mrt_stations.xlsx"
-address_geodata_path = "..\\data\\address_geolocations.csv"
+resale_flat_prices_path = config.get_sourcefile_path("ResaleFlatPrices")
+mrt_stations_path = config.get_sourcefile_path("MrtStations")
+address_geodata_path = config.get_sourcefile_path("HdbAddressGeodata")
 
-staging_path = "local_data\\staging"
+staging_path = config.get_location("Staging")
+
+storage = file_storage.LocalFileStorage()
 
 
 def extract_into_staging() -> None:
     log.info(f"Starting Extraction Step.")
 
-    makedirs(staging_path, exist_ok=True)
+    storage.ensure_directory(staging_path)
 
     _extract_resale_flat_prices()
     _extract_mrt_stations()
@@ -37,47 +31,31 @@ def extract_into_staging() -> None:
 
 def _extract_resale_flat_prices() -> None:
     log.info("Extracting hdb resale flat prices data")
-    _extract_file(resale_flat_prices_path)
+
+    storage.copy_file(resale_flat_prices_path, staging_path)
 
 
 def _extract_mrt_stations() -> None:
     log.info("Extracting MRT station data")
-    _extract_file(mrt_stations_path)
+
+    storage.copy_file(mrt_stations_path, staging_path)
 
 
 def _extract_mrt_geodata() -> None:
     log.info("Extracting MRT geodata")
     data = get_mrt_stations_geodata()
 
-    _save_as_json(data, "mrt_geodata.json")
+    storage.write_json(data, staging_path / "mrt_geodata.json")
 
 
 def _extract_mall_geodata() -> None:
     log.info("Extracting Shopping Mall geodata")
     data = get_shopping_malls_geodata()
 
-    _save_as_json(data, "mall_geodata.json")
+    storage.write_json(data, staging_path / "mall_geodata.json")
 
 
 def _extract_address_geodata() -> None:
     log.info("Extracting address geolocation data")
-    _extract_file(address_geodata_path)
 
-
-def _save_as_json(data: Any, filename: str) -> None:
-    dst = Path(staging_path) / filename
-
-    log.info(f"Saving JSON data to to {dst}")
-
-    with open(dst, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False)
-
-
-def _extract_file(path: str) -> None:
-    src = Path(path)
-    file_name = src.name
-    dst = Path(staging_path) / file_name
-
-    log.info(f"Copying file {src} to {dst}")
-
-    shutil.copy(src, dst)
+    storage.copy_file(address_geodata_path, staging_path)
