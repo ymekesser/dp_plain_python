@@ -47,6 +47,10 @@ class LocalFileStorage(FileStorage):
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False)
 
+    def write_pickle(self, object: Any, path: Path) -> None:
+        log.info(f"Writing pickled object to {path}")
+        pickle.dump(object, open(path, "wb"))
+
     def copy_file(
         self,
         src_path: Path,

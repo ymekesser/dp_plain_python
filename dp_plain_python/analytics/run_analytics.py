@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 import sklearn.metrics as metrics
@@ -13,13 +13,15 @@ log = logging.getLogger(__name__)
 
 transformed_analytics_path = config.get_location("TransformedAnalytics")
 feature_set_filename = "feature_set.csv"
-analytics_path = "local_data\\analytics"
+analytics_path = config.get_location("Analytics")
 
 storage = file_storage.LocalFileStorage()
 
 
 def run_analytics() -> None:
     log.info("Starting Analytics Step")
+
+    storage.ensure_directory(analytics_path)
 
     df_features = _read_feature_set()
 
@@ -40,34 +42,55 @@ def run_analytics() -> None:
         X, y, random_state=1337, test_size=0.25
     )
 
-    pipe = Pipeline([("scaler", StandardScaler()), ("linreg", LinearRegression())])
+    pipe = Pipeline([("scaler", StandardScaler()), ("linreg", RandomForestRegressor())])
 
-    pipe.fit(X_train, y_train)
+    pipe.fit(X_train, y_train.ravel())
 
-    y_train_pred = pipe.predict(X_train)
-    y_test_pred = pipe.predict(X_test)
-    print(f"R^2 Score on Training:{metrics.r2_score(y_train, y_train_pred)}")
-    print(f"R^2 Score on Test:{metrics.r2_score(y_test, y_test_pred)}")
+    df_metrics = _calculate_metrics(pipe, X_train, y_train, X_test, y_test)
+    _print_metrics(df_metrics)
 
-    print()
+    storage.write_pickle(pipe, analytics_path / "model")
+    storage.write_dataframe(df_metrics, analytics_path / "metrics.csv")
 
-    print(
-        "Mean Absolute Error (MAE):", metrics.mean_absolute_error(y_test, y_test_pred)
-    )
-    print("Mean Squared Error (MSE):", metrics.mean_squared_error(y_test, y_test_pred))
-    print(
-        "Root Mean Squared Error (RMSE):",
-        np.sqrt(metrics.mean_squared_error(y_test, y_test_pred)),
-    )
+
+def _calculate_metrics(
+    model: Pipeline,
+    X_train,
+    y_train,
+    X_test,
+    y_test,
+) -> pd.DataFrame:
+    y_train_pred = model.predict(X_train)
+    y_test_pred = model.predict(X_test)
+
+    df_metrics = pd.DataFrame()
+
+    df_metrics["r2_train"] = [metrics.r2_score(y_train, y_train_pred)]
+    df_metrics["r2_test"] = [metrics.r2_score(y_test, y_test_pred)]
+    df_metrics["MAE"] = [metrics.mean_absolute_error(y_test, y_test_pred)]
+    df_metrics["MSE"] = [metrics.mean_squared_error(y_test, y_test_pred)]
+    df_metrics["RMSE"] = [np.sqrt(metrics.mean_squared_error(y_test, y_test_pred))]
     mape = np.mean(np.abs((y_test - y_test_pred) / np.abs(y_test)))
-    print("Mean Absolute Percentage Error (MAPE):", round(mape * 100, 2))
-    print("Accuracy:", round(100 * (1 - mape), 2))
+    df_metrics["MAPE"] = [round(mape * 100, 2)]
+    df_metrics["Accuracy"] = [round(100 * (1 - mape), 2)]
 
-    print()
+    return df_metrics
 
-    importance = pipe.named_steps["linreg"].coef_
-    for i, v in enumerate(importance):
-        print(f"Feature: {i}, Score: {v}")
+
+def _print_metrics(df_metrics: pd.DataFrame):
+    formatted_metrics = f"""Result Metrics:
+R^2 Score on Training:{df_metrics["r2_train"]}
+R^2 Score on Test:{df_metrics["r2_test"]}
+
+Mean Absolute Error (MAE): {df_metrics["MAE"]}
+Mean Squared Error (MSE): {df_metrics["MSE"]}
+Root Mean Squared Error (RMSE): {df_metrics["RMSE"]}
+
+Mean Absolute Percentage Error (MAPE): {df_metrics["MAPE"]}
+Accuracy: {df_metrics["Accuracy"]}
+    """
+
+    print(formatted_metrics)
 
 
 def _read_feature_set() -> pd.DataFrame:
