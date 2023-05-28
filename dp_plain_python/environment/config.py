@@ -10,6 +10,7 @@ _config_section_sourcefile_paths = "SOURCEFILE_PATHS"
 _config_section_storage_filenames = "STORAGE_FILENAMES"
 _config_section_logging = "LOGGING"
 _config_section_pipeline = "PIPELINE"
+_config_section_api_endpoints = "API_ENDPOINTS"
 
 _location = Literal["Staging", "Storage", "TransformedAnalytics", "Analytics"]
 _sourcefiles = Literal["ResaleFlatPrices", "MrtStations", "HdbAddressGeodata"]
@@ -27,6 +28,7 @@ _pipeline = Literal[
     "TransformAnalyticsEnabled",
     "AnalyticsEnabled",
 ]
+_endpoint = Literal["Overpass"]
 
 
 def get_location(location: _location) -> Path:
@@ -50,3 +52,7 @@ def get_logging_setting(setting: _logging) -> str:
 
 def get_pipeline_setting(setting: _pipeline) -> str:
     return _config.get(_config_section_pipeline, setting)
+
+
+def get_api_endpoint(endpoint: _endpoint) -> str:
+    return _config.get(_config_section_api_endpoints, endpoint)

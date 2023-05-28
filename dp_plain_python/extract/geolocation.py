@@ -1,10 +1,11 @@
 import logging
 import requests
 
+from dp_plain_python.environment import config
+
 log = logging.getLogger(__name__)
 
-# todo: Make configurable
-overpass_endpoint = "https://overpass-api.de/api/interpreter"
+overpass_endpoint = config.get_api_endpoint("Overpass")
 
 shopping_mall_query = """
 [out:json];
