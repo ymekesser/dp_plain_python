@@ -11,6 +11,7 @@ _config_section_storage_filenames = "STORAGE_FILENAMES"
 _config_section_logging = "LOGGING"
 _config_section_pipeline = "PIPELINE"
 _config_section_api_endpoints = "API_ENDPOINTS"
+_config_section_file_access = "FILE_ACCESS"
 
 _location = Literal["Staging", "Storage", "TransformedAnalytics", "Analytics"]
 _sourcefiles = Literal["ResaleFlatPrices", "MrtStations", "HdbAddressGeodata"]
@@ -29,11 +30,16 @@ _pipeline = Literal[
     "AnalyticsEnabled",
 ]
 _endpoint = Literal["Overpass"]
+_file_access = Literal["Mode", "S3Bucket"]
 
 
 def get_location(location: _location) -> Path:
     path = _config.get(_config_section_locations, location)
     return Path(path)
+
+
+def get_file_access_setting(setting: _file_access):
+    return _config.get(_config_section_file_access, setting)
 
 
 def get_sourcefile_path(sourcefile: _sourcefiles) -> Path:

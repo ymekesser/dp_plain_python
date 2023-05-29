@@ -14,7 +14,7 @@ address_geodata_path = config.get_sourcefile_path("HdbAddressGeodata")
 
 staging_path = config.get_location("Staging")
 
-storage = file_storage.LocalFileStorage()
+storage = file_storage.get_storage()
 
 
 def extract_into_staging() -> None:

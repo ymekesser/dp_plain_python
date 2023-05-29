@@ -26,7 +26,7 @@ mrt_geodata_filename = config.get_storage_filename("MrtGeodata")
 mall_geodata_filename = config.get_storage_filename("MallGeodata")
 address_geodata_filename = config.get_storage_filename("HdbAddressGeodata")
 
-storage = file_storage.LocalFileStorage()
+storage = file_storage.get_storage()
 
 
 def transform_for_analytics() -> None:

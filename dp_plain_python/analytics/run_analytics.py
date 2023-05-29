@@ -15,7 +15,7 @@ transformed_analytics_path = config.get_location("TransformedAnalytics")
 feature_set_filename = "feature_set.csv"
 analytics_path = config.get_location("Analytics")
 
-storage = file_storage.LocalFileStorage()
+storage = file_storage.get_storage()
 
 
 def run_analytics() -> None:
@@ -65,11 +65,11 @@ def _calculate_metrics(
 
     df_metrics = pd.DataFrame()
 
-    df_metrics["r2_train"] = [metrics.r2_score(y_train, y_train_pred)]
-    df_metrics["r2_test"] = [metrics.r2_score(y_test, y_test_pred)]
-    df_metrics["MAE"] = [metrics.mean_absolute_error(y_test, y_test_pred)]
-    df_metrics["MSE"] = [metrics.mean_squared_error(y_test, y_test_pred)]
-    df_metrics["RMSE"] = [np.sqrt(metrics.mean_squared_error(y_test, y_test_pred))]
+    df_metrics["r2_train"] = [metrics.r2_score(y_train, y_train_pred)]  # type: ignore
+    df_metrics["r2_test"] = [metrics.r2_score(y_test, y_test_pred)]  # type: ignore
+    df_metrics["MAE"] = [metrics.mean_absolute_error(y_test, y_test_pred)]  # type: ignore
+    df_metrics["MSE"] = [metrics.mean_squared_error(y_test, y_test_pred)]  # type: ignore
+    df_metrics["RMSE"] = [np.sqrt(metrics.mean_squared_error(y_test, y_test_pred))]  # type: ignore
     mape = np.mean(np.abs((y_test - y_test_pred) / np.abs(y_test)))
     df_metrics["MAPE"] = [round(mape * 100, 2)]
     df_metrics["Accuracy"] = [round(100 * (1 - mape), 2)]
