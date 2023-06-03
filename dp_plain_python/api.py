@@ -10,3 +10,8 @@ async def run():
     main()
 
     return {"message": "Data pipeline completed successfully!"}
+
+
+@app.get("/test")
+async def test():
+    return {"message": "Alive"}
