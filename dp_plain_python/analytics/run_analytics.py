@@ -42,10 +42,12 @@ def run_analytics() -> None:
         X, y, random_state=1337, test_size=0.25
     )
 
+    log.info("Fitting model")
     pipe = Pipeline([("scaler", StandardScaler()), ("linreg", RandomForestRegressor())])
 
     pipe.fit(X_train, y_train.ravel())
 
+    log.info("Calculating metrics")
     df_metrics = _calculate_metrics(pipe, X_train, y_train, X_test, y_test)
     _print_metrics(df_metrics)
 
