@@ -118,7 +118,7 @@ class S3Storage(FileStorage):
         pass
 
     def read_dataframe(self, path: Union[Path, str]) -> DataFrame:
-        log.info(f"Read dataframe from {path}")
+        log.info(f"Read dataframe from {_s3_path(path)}")
         tmp_path = self._get_temp_file_path()
 
         self._s3_client.download_file(self._bucket_name, _s3_path(path), tmp_path)
@@ -126,7 +126,7 @@ class S3Storage(FileStorage):
         return pd.read_csv(tmp_path)
 
     def read_json(self, path: Union[Path, str]) -> Any:
-        log.info(f"Read JSON data from {path}")
+        log.info(f"Read JSON data from {_s3_path(path)}")
         tmp_path = self._get_temp_file_path()
 
         self._s3_client.download_file(self._bucket_name, _s3_path(path), tmp_path)
@@ -137,7 +137,7 @@ class S3Storage(FileStorage):
         return data
 
     def write_dataframe(self, dataframe: DataFrame, path: Union[Path, str]) -> None:
-        log.info(f"Write dataframe to {path}")
+        log.info(f"Write dataframe to {_s3_path(path)}")
         tmp_path = self._get_temp_file_path()
 
         dataframe.to_csv(tmp_path, lineterminator="\n")
@@ -145,7 +145,7 @@ class S3Storage(FileStorage):
         self._upload(tmp_path, path)
 
     def write_json(self, data: Any, path: Union[Path, str]):
-        log.info(f"Writing JSON data to {path}")
+        log.info(f"Writing JSON data to {_s3_path(path)}")
         tmp_path = self._get_temp_file_path()
 
         with open(tmp_path, "w", encoding="utf-8") as f:
@@ -154,7 +154,7 @@ class S3Storage(FileStorage):
         self._upload(tmp_path, path)
 
     def read_excel(self, path: Union[Path, str], sheet: str) -> DataFrame:
-        log.info(f"Read excel data from {path} (sheet: {sheet})")
+        log.info(f"Read excel data from {_s3_path(path)} (sheet: {sheet})")
         tmp_path = self._get_temp_file_path()
 
         self._s3_client.download_file(self._bucket_name, _s3_path(path), tmp_path)
@@ -162,7 +162,7 @@ class S3Storage(FileStorage):
         return pd.read_excel(tmp_path, sheet_name=sheet)
 
     def write_pickle(self, object: Any, path: Union[Path, str]) -> None:
-        log.info(f"Writing pickled object to {path}")
+        log.info(f"Writing pickled object to {_s3_path(path)}")
         tmp_path = self._get_temp_file_path()
 
         pickle.dump(object, open(tmp_path, "wb"))
@@ -177,8 +177,7 @@ class S3Storage(FileStorage):
         src = Path(src_path)
         dst = Path(dst_path)
 
-        if dst.is_dir():
-            dst = Path(dst_path) / src.name
+        dst = Path(dst_path) / src.name
 
         log.info(f"Copying file {src} to {dst}")
 
