@@ -1,9 +1,11 @@
 import configparser
 from pathlib import Path
+import os
 from typing import Literal
 
+_config_path = Path(os.getcwd()) / "config.ini"
 _config = configparser.ConfigParser()
-_config.read("./config.ini")
+_config.read(_config_path)
 
 _config_section_locations = "LOCATIONS"
 _config_section_sourcefile_paths = "SOURCEFILE_PATHS"
