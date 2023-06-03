@@ -1,4 +1,5 @@
 import logging
+import sys
 
 from dp_plain_python.extract.run_extract import extract_into_staging
 from dp_plain_python.load.run_load import load_into_storage
@@ -9,7 +10,12 @@ from dp_plain_python.environment import config
 if config.get_logging_setting("Enabled") != "True":
     logging.disable()
 
-logging.basicConfig(level=config.get_logging_setting("Level").upper())
+log_format = "%(levelname)s %(asctime)s - %(message)s"
+logging.basicConfig(
+    level=config.get_logging_setting("Level").upper(),
+    stream=sys.stdout,
+    format=log_format,
+)
 
 log = logging.getLogger(__name__)
 
