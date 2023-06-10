@@ -32,13 +32,19 @@ def extract_into_staging() -> None:
 def _extract_resale_flat_prices() -> None:
     log.info("Extracting hdb resale flat prices data")
 
-    storage.copy_file(resale_flat_prices_path, staging_path)
+    source = resale_flat_prices_path
+    destination = staging_path / resale_flat_prices_path.name
+
+    storage.copy_file(source, destination)
 
 
 def _extract_mrt_stations() -> None:
     log.info("Extracting MRT station data")
 
-    storage.copy_file(mrt_stations_path, staging_path)
+    source = mrt_stations_path
+    destination = staging_path / mrt_stations_path.name
+
+    storage.copy_file(source, destination)
 
 
 def _extract_mrt_geodata() -> None:
@@ -58,4 +64,7 @@ def _extract_mall_geodata() -> None:
 def _extract_address_geodata() -> None:
     log.info("Extracting address geolocation data")
 
-    storage.copy_file(address_geodata_path, staging_path)
+    source = address_geodata_path
+    destination = staging_path / address_geodata_path.name
+
+    storage.copy_file(source, destination)

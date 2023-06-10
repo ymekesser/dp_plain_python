@@ -1,4 +1,5 @@
 import abc
+import io
 import json
 import shutil
 import tempfile
@@ -117,83 +118,84 @@ class S3Storage(FileStorage):
     def ensure_directory(self, _: Union[Path, str]) -> None:
         pass
 
-    def read_dataframe(self, path: Union[Path, str]) -> DataFrame:
-        log.info(f"Read dataframe from {_s3_path(path)}")
-        tmp_path = self._get_temp_file_path()
+    def read_dataframe(self, src_path: Union[Path, str]) -> DataFrame:
+        src_path = _s3_path(src_path)
 
-        self._s3_client.download_file(self._bucket_name, _s3_path(path), tmp_path)
+        log.info(f"Read dataframe from {src_path}")
 
-        return pd.read_csv(tmp_path)
+        obj = self._s3_client.get_object(Bucket=self._bucket_name, Key=src_path)
+        df = pd.read_csv(io.BytesIO(obj["Body"].read()))
 
-    def read_json(self, path: Union[Path, str]) -> Any:
-        log.info(f"Read JSON data from {_s3_path(path)}")
-        tmp_path = self._get_temp_file_path()
+        return df
 
-        self._s3_client.download_file(self._bucket_name, _s3_path(path), tmp_path)
+    def read_json(self, src_path: Union[Path, str]) -> Any:
+        src_path = _s3_path(src_path)
 
-        with open(tmp_path, encoding="utf-8") as f:
-            data = json.load(f)
+        log.info(f"Read JSON data from {src_path}")
 
-        return data
+        obj = self._s3_client.get_object(Bucket=self._bucket_name, Key=src_path)
+        data = obj["Body"].read().decode("utf-8")
 
-    def write_dataframe(self, dataframe: DataFrame, path: Union[Path, str]) -> None:
-        log.info(f"Write dataframe to {_s3_path(path)}")
-        tmp_path = self._get_temp_file_path()
+        return json.loads(data)
 
-        dataframe.to_csv(tmp_path, lineterminator="\n")
+    def write_dataframe(self, dataframe: DataFrame, dst_path: Union[Path, str]) -> None:
+        dst_path = _s3_path(dst_path)
 
-        self._upload(tmp_path, path)
+        log.info(f"Write dataframe to {dst_path}")
 
-    def write_json(self, data: Any, path: Union[Path, str]):
-        log.info(f"Writing JSON data to {_s3_path(path)}")
-        tmp_path = self._get_temp_file_path()
+        csv_buffer = io.StringIO()
+        dataframe.to_csv(csv_buffer, index=False)
 
-        with open(tmp_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False)
+        self._s3_client.put_object(
+            Bucket=self._bucket_name, Key=dst_path, Body=csv_buffer.getvalue()
+        )
 
-        self._upload(tmp_path, path)
+    def write_json(self, data: Any, dst_path: Union[Path, str]):
+        dst_path = _s3_path(dst_path)
+        log.info(f"Writing JSON data to {dst_path}")
 
-    def read_excel(self, path: Union[Path, str], sheet: str) -> DataFrame:
-        log.info(f"Read excel data from {_s3_path(path)} (sheet: {sheet})")
-        tmp_path = self._get_temp_file_path()
+        bytes = json.dumps(data).encode("utf-8")
 
-        self._s3_client.download_file(self._bucket_name, _s3_path(path), tmp_path)
+        self._s3_client.put_object(Bucket=self._bucket_name, Key=dst_path, Body=bytes)
 
-        return pd.read_excel(tmp_path, sheet_name=sheet)
+    def read_excel(self, src_path: Union[Path, str], sheet: str) -> DataFrame:
+        src_path = _s3_path(src_path)
 
-    def write_pickle(self, object: Any, path: Union[Path, str]) -> None:
-        log.info(f"Writing pickled object to {_s3_path(path)}")
-        tmp_path = self._get_temp_file_path()
+        log.info(f"Read excel data from {_s3_path(src_path)} (sheet: {sheet})")
 
-        pickle.dump(object, open(tmp_path, "wb"))
+        obj = self._s3_client.get_object(Bucket=self._bucket_name, Key=src_path)
+        data = io.BytesIO(obj["Body"].read())
 
-        self._upload(tmp_path, path)
+        df = pd.read_excel(data, sheet_name=sheet)
+
+        return df
+
+    def write_pickle(self, obj: Any, dst_path: Union[Path, str]) -> None:
+        dst_path = _s3_path(dst_path)
+        log.info(f"Writing pickled object to {dst_path}")
+
+        bytes = pickle.dumps(obj)
+
+        self._s3_client.put_object(Bucket=self._bucket_name, Key=dst_path, Body=bytes)
 
     def copy_file(
         self,
         src_path: Union[Path, str],
         dst_path: Union[Path, str],
     ) -> None:
-        src = Path(src_path)
-        dst = Path(dst_path)
+        src_path = _s3_path(src_path)
+        dst_path = _s3_path(dst_path)
 
-        dst = Path(dst_path) / src.name
+        print(f"Copying file from {src_path} to {dst_path}")
 
-        log.info(f"Copying file {src} to {dst}")
+        copy_source = {"Bucket": self._bucket_name, "Key": src_path}
 
-        copy_source = {"Bucket": self._bucket_name, "Key": _s3_path(src)}
-        self._s3_client.copy_object(
+        s3 = boto3.resource("s3")
+        s3.meta.client.copy_object(
             CopySource=copy_source,
             Bucket=self._bucket_name,  # Destination bucket
-            Key=_s3_path(dst),  # Destination path/filename
+            Key=dst_path,  # Destination path/filename
         )
-
-    def _get_temp_file_path(self) -> Path:
-        return self._tmp_dir / "tmp.file"
-
-    def _upload(self, tmp_path, dst_path) -> None:
-        with open(tmp_path, "rb") as f:
-            self._s3_client.upload_fileobj(f, self._bucket_name, _s3_path(dst_path))
 
 
 def _s3_path(path: Union[Path, str]) -> str:
