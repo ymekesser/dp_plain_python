@@ -37,5 +37,9 @@ jobs:
           tags: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.AWS_ECR_REPOSITORY }}:latest
 
       - name: Deploy to AWS ECS
-        run: |
-          aws ecs update-service --cluster ${{ vars.AWS_ECS_CLUSTER_NAME }} --service ${{ vars.AWS_ECS_SERVICE_NAME }} --force-new-deployment --region ${{ vars.AWS_REGION }}
+        run: >
+          aws ecs update-service 
+          --cluster ${{ vars.AWS_ECS_CLUSTER_NAME }} 
+          --service ${{ vars.AWS_ECS_SERVICE_NAME }} 
+          --force-new-deployment 
+          --region ${{ vars.AWS_REGION }}
