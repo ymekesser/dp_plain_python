@@ -47,12 +47,12 @@ def run_analytics() -> None:
 
     pipe.fit(X_train, y_train.ravel())
 
-    log.info("Calculating metrics")
-    df_metrics = _calculate_metrics(pipe, X_train, y_train, X_test, y_test)
-    _print_metrics(df_metrics)
+    # log.info("Calculating metrics")
+    # df_metrics = _calculate_metrics(pipe, X_train, y_train, X_test, y_test)
+    # _print_metrics(df_metrics)
 
     storage.write_pickle(pipe, analytics_path / "model")
-    storage.write_dataframe(df_metrics, analytics_path / "metrics.csv")
+    # storage.write_dataframe(df_metrics, analytics_path / "metrics.csv")
 
 
 def _calculate_metrics(
