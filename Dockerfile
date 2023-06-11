@@ -29,4 +29,4 @@ COPY ./config_aws.ini /code/config.ini
 EXPOSE 8000
 
 # Start webserver
-CMD ["uvicorn", "dp_plain_python.api:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["poetry", "run" ,"run-all"]
