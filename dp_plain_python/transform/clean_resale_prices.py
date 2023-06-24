@@ -1,4 +1,5 @@
 import pandas as pd
+from datetime import datetime
 from dp_plain_python.utils.select_columns import select_columns
 
 
@@ -25,14 +26,23 @@ def get_cleaned_resale_prices(df_resale_flat_prices: pd.DataFrame) -> pd.DataFra
 
 
 def _get_remaining_lease_in_months(df_resale_flat_prices: pd.DataFrame) -> pd.DataFrame:
-    df_resale_flat_prices["remaining_lease_in_months"] = df_resale_flat_prices[
-        "remaining_lease"
-    ].apply(_parse_duration)
+    def apply_functions(row):
+        val = row["remaining_lease"]
+        if pd.isna(val):
+            return _calculate_remaining_lease(row["lease_commence_date"], row["month"])
+        elif isinstance(val, str):
+            return _parse_duration_string(val)
+        elif isinstance(val, int):
+            return _parse_duration_years(val)
+
+    df_resale_flat_prices["remaining_lease_in_months"] = df_resale_flat_prices.apply(
+        apply_functions, axis=1
+    )
 
     return df_resale_flat_prices
 
 
-def _parse_duration(duration_string: str) -> int:
+def _parse_duration_string(duration_string: str) -> int:
     # Remaining lease always follows the same pattern,
     # either e.g. 56 years 09 months
     # or e.g. 63 years
@@ -42,6 +52,24 @@ def _parse_duration(duration_string: str) -> int:
     months = int(parts[2]) if len(parts) > 2 else 0
 
     return years * 12 + months
+
+
+def _parse_duration_years(years: int) -> int:
+    # If remaining lease is given as years only,
+    # convert it into months
+
+    return years * 12
+
+
+def _calculate_remaining_lease(lease_commence_date: int, resale_date_str: str) -> int:
+    # If we don't have the remaining lease, we can calculate it
+    # from the lease commence date and the date of resale
+    # Months are ignored as the lease commence date only specifies the year.
+
+    resale_date = datetime.strptime(resale_date_str, "%d/%m/%Y")
+    resale_year = resale_date.year
+
+    return (resale_year - lease_commence_date) * 12
 
 
 def _get_storey_median(df_resale_flat_prices: pd.DataFrame) -> pd.DataFrame:
